@@ -1,3 +1,5 @@
+const { engine } = require("express-handlebars");
+
 require("colors");
 const express = require("express");
 const path = require("path");
@@ -10,11 +12,48 @@ const asyncHandler = require("express-async-handler");
 const UserModel = require("./models/UserModel");
 const RoleModel = require("./models/RoleModel");
 const authMiddleware = require("./middlewares/authMiddleware");
+const sendEmail = require("./services/sendEmail");
 require("dotenv").config({ path: configPath });
 
 const app = express();
+
+app.use(express.static("public"));
+
+app.engine("handlebars", engine());
+app.set("view engine", "handlebars");
+app.set("views", "backend/views");
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.get("/", (req, res) => {
+  res.render("home");
+});
+
+app.get("/about", (req, res) => {
+  res.render("about");
+});
+
+app.get("/contact", (req, res) => {
+  res.render("contact");
+});
+
+app.post("/sended", async (req, res) => {
+  // res.send(req.body);
+  try {
+    await sendEmail(req.body);
+
+    res.render("sended", {
+      message: "Contact form send success",
+      user: req.body.userName,
+      email: req.body.userEmail,
+    });
+  } catch (error) {
+    res.status(400);
+    throw new Error(error.message);
+  }
+});
+
 app.use("/api/v1", require("./routes/carsRoutes"));
 app.use("/admin", require("./routes/adminRoutes"));
 
@@ -22,6 +61,11 @@ app.use("/admin", require("./routes/adminRoutes"));
 //Аутентифікація - перевірка і порівняння даних з тим, що в БД
 //Авторизація - перевірка прав доступу
 //Логаут - вихід зі свого акаунта
+
+app.get("/register", (req, res) => {
+  //Виводимо форму реєстрації
+  res.render("register");
+});
 
 app.post(
   "/register",
@@ -53,15 +97,23 @@ app.post(
       password: hashPassword,
       roles: [roles.title],
     });
-    res.status(201).json({
-      code: 201,
-      data: {
-        email: newUser.email,
-        name: newUser.name,
-      },
-    });
+    // res.status(201).json({
+    //   code: 201,
+    //   data: {
+    //     email: newUser.email,
+    //     name: newUser.name,
+    //   },
+    // });
+
+    res.status(201);
+    res.render("registerOk");
   })
 );
+
+app.get("/login", (req, res) => {
+  //Виводимо форму логіну
+  res.render("login");
+});
 
 app.post(
   "/login",
@@ -92,13 +144,16 @@ app.post(
     user.token = token;
     await user.save();
 
-    res.status(200).json({
-      code: 200,
-      data: {
-        email: user.email,
-        token: user.token,
-      },
-    });
+    // res.status(200).json({
+    //   code: 200,
+    //   data: {
+    //     email: user.email,
+    //     token: user.token,
+    //   },
+    // });
+
+    res.status(200);
+    res.render("loginOk");
   })
 );
 

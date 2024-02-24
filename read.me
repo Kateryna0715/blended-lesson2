@@ -1,0 +1,10 @@
+const user = await UserModel.findById(id);
+    user.token = null;
+    await user.save();
+
+const user = await UserModel.findByIdAndUpdate(id,{token:null})
+
+5+10+20=35
+
+5+10=15
+15+20=35
